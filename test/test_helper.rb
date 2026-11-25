@@ -47,6 +47,18 @@ class ActiveSupport::TestCase
   def assert_equal_dmy(date1, date2)
     assert_equal date1.strftime("%d-%m-%y"), date2.strftime("%d-%m-%y")
   end
+
+  # Returns the string argument of the first `some_receiver.<method_name>('...')`
+  # (or `("...")`) call in +body+, with JavaScript string escapes undone, so that
+  # tests can compare it with the original, unescaped value. Values that are
+  # HTML-escaped *before* being written into the JavaScript string (e.g.
+  # "O\&#39;Brien") come back with the HTML entity still in place, which is what
+  # makes them detectable.
+  def js_string_argument(body, method_name)
+    match = body.match(/#{Regexp.escape(method_name)}\((['"])(.*?)\1\)/m)
+    return nil if match.nil?
+    match[2].gsub(/\\(.)/, '\1')
+  end
 end
 
 class ActionController::TestCase

@@ -53,6 +53,16 @@ class ContextsControllerTest < ActionController::TestCase
     assert /The context cannot be closed if you have uncompleted actions/.match(@response.body)
   end
 
+  def test_update_with_apostrophe_in_name_does_not_html_escape_form_value
+    context = contexts(:agenda)
+    login_as :admin_user
+
+    put :update, xhr: true, params: { :id => context.id, :context => {:name => "Erin's desk"} }
+
+    assert_response 200
+    assert_equal "Erin's desk", js_string_argument(@response.body, "set_context_name_and_default_context_name")
+  end
+
   # TXT feed
   def test_text_feed_content
     login_as :admin_user

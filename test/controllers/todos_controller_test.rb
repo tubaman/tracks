@@ -261,6 +261,39 @@ class TodosControllerTest < ActionController::TestCase
     end
   end
 
+  def test_create_todo_via_xhr_does_not_html_escape_names
+    login_as(:admin_user)
+    project_name = "Sylvia's wedding"
+    context_name = "Erin's desk"
+    tag_list = "don't forget"
+    project = projects(:timemachine)
+    project.name = project_name
+    project.save!
+    context = contexts(:agenda)
+    context.name = context_name
+    context.save!
+
+    put :create, xhr: true, params: {
+      "_source_view" => "project",
+      "context_name" => context_name,
+      "project_name" => project_name,
+      "default_context_name" => context_name,
+      "default_project_name" => project_name,
+      "initial_tag_list" => tag_list,
+      "todo" => {
+        "notes" => "",
+        "description" => "Book the venue",
+        "due" => "30/11/2006"
+      },
+      "tag_list" => tag_list
+    }
+
+    assert_response 200
+    assert_equal project_name, js_string_argument(response.body, "set_project_name_and_default_project_name")
+    assert_equal context_name, js_string_argument(response.body, "set_context_name")
+    assert_equal tag_list, js_string_argument(response.body, "set_tag_list_and_default_tag_list")
+  end
+
   def test_fail_to_create_todo_via_xml
     login_as(:admin_user)
     # try to create with no context, which is not valid
@@ -288,6 +321,24 @@ class TodosControllerTest < ActionController::TestCase
       :multiple_todos=>"a\nb\nmuch \"ado\" about \'nothing\'"} }
 
     assert_equal start_count+3, Todo.count, "two todos should have been added"
+  end
+
+  def test_add_multiple_todos_via_xhr_does_not_html_escape_names
+    login_as(:admin_user)
+    project_name = "Sylvia's wedding"
+
+    put :create, xhr: true, params: {
+      "_source_view" => "todo",
+      "context_name" => "library",
+      "project_name" => project_name,
+      "default_project_name" => project_name,
+      "initial_tag_list" => "",
+      "todo" => { "multiple_todos" => "Book the venue\nSend invitations" },
+      "tag_list" => ""
+    }
+
+    assert_response 200
+    assert_equal project_name, js_string_argument(response.body, "set_project_name_for_multi_add")
   end
 
   def test_add_multiple_todos_with_validation_error
